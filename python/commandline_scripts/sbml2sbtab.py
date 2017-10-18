@@ -68,6 +68,7 @@ class SBMLDocument:
                 new_sbtab = eval(function_name)
                 if new_sbtab != False: sbtabs.append(new_sbtab)
             except:
+                # traceback.print_exc()
                 pass
 
         sbtabs = self.getRidOfNone(sbtabs)
@@ -378,7 +379,7 @@ class SBMLDocument:
         Builds a Reaction SBtab.
         '''
         reaction     = [['!!SBtab SBtabVersion="1.0" Document="'+self.filename.rstrip('.xml')+'" TableType="Reaction" TableName="Reaction"'],['']]
-        header       = ['!Reaction','!Name','!ReactionFormula','!Location','!Regulator','!KineticLaw','!SBOTerm','!IsReversible']
+        header       = ['!Reaction','!Name','!ReactionFormula','!Location','!Regulator','!KineticLaw','!SBOTerm','!IsReversible','!Pathway']
         identifiers  = []
         column2ident = {}
 
@@ -403,7 +404,16 @@ class SBMLDocument:
             except: pass
             if str(react.getSBOTerm()) != '-1': value_row[6] ='SBO:%.7d'%react.getSBOTerm()
             try: value_row[7] = str(react.getReversible())
-            except: pass            
+            except: pass
+
+            notesStr = react.getNotesString()
+            notesHash = self.parse_legacy_sbml_notes(notesStr)
+
+            if "SUBSYSTEM" in notesHash:
+                value_row[8] = notesHash["SUBSYSTEM"][0]
+
+            # Going through annotations
+            # TODO - go through the annotations that are on the COBRA notes as well and merged them together
             try:
                 annot_tuples = self.getAnnotations(react)
                 for i,annotation in enumerate(annot_tuples):
@@ -422,7 +432,7 @@ class SBMLDocument:
         for row in reaction[1:]:
             reaction_SB.append('\t'.join(row))
         reaction_SBtab = '\n'.join(reaction_SB)
-        
+
         return [reaction_SBtab,'reaction']
 
     def quantitySBtab(self):
@@ -537,12 +547,46 @@ class SBMLDocument:
 
         return sumformula
         
+    def parse_legacy_sbml_notes(self, note_string, note_delimiter=':'):
+        """Deal with various legacy SBML format issues.
+        """
+
+        note_dict = {}
+        start_tag = '<p>'
+        end_tag = '</p>'
+
+        if '<html:p>' in note_string:
+            start_tag = '<html:p>'
+            end_tag = '</html:p>'
+
+        while start_tag in note_string and end_tag in note_string:
+            note_start = note_string.index(start_tag)
+            note_end = note_string.index(end_tag)
+            the_note = note_string[(note_start + len(start_tag)):note_end].lstrip(' ').rstrip(' ')
+
+            if note_delimiter in the_note:
+                note_delimiter_index = the_note.index(note_delimiter)
+                note_field = the_note[:note_delimiter_index].lstrip(
+                    ' ').rstrip(' ').replace('_', ' ').upper()
+                note_value = the_note[(note_delimiter_index + 1):].lstrip(' ').rstrip(' ')
+
+                if note_field in note_dict:
+                    note_dict[note_field].append(note_value)
+                else:
+                    note_dict[note_field] = [note_value]
+            note_string = note_string[(note_end + len(end_tag)):]
+
+        if ('CHARGE' in note_dict and note_dict['CHARGE'][0].lower() in ['none', 'na', 'nan']):
+            note_dict.pop('CHARGE')  # Remove non-numeric charges
+
+        return note_dict
+
 
 if __name__ == '__main__':
 
     try: sys.argv[1]
     except:
-        print 'You have not provided input arguments. Please start the script by also providing an SBML file and an optional SBtab output filename: >python sbml2sbtab.py SBMLfile.xml Output'
+        print ('You have not provided input arguments. Please start the script by also providing an SBML file and an optional SBtab output filename: >python sbml2sbtab.py SBMLfile.xml Output')
         sys.exit()
 
     file_name  = sys.argv[1]
@@ -564,4 +608,4 @@ if __name__ == '__main__':
         sbtab_file.write(sbtab[0])
         sbtab_file.close()
 
-    print 'The SBtab file/s have been successfully written to your working directory or chosen output path.'
+    print ('The SBtab file/s have been successfully written to your working directory or chosen output path.')
