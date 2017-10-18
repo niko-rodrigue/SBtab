@@ -345,11 +345,11 @@ class SBMLDocument:
         urn          = False
         annot_tuples = []
 
-        pattern2urn = {"CHEBI:\d+$":"obo.chebi",\
+        pattern2urn = {"CHEBI:\d+$":"chebi",\
                        "C\d+$":"kegg.compound",\
-                       "GO:\d{7}$":"obo.go",\
+                       "GO:\d{7}$":"go",\
                        "((S\d+$)|(Y[A-Z]{2}\d{3}[a-zA-Z](\-[A-Z])?))$":"sgd",\
-                       "SBO:\d{7}$":"biomodels.sbo",\
+                       "SBO:\d{7}$":"sbo",\
                        "\d+\.-\.-\.-|\d+\.\d+\.-\.-|\d+\.\d+\.\d+\.-|\d+\.\d+\.\d+\.(n)?\d+$":"ec-code",\
                        "K\d+$":"kegg.orthology",\
                        "([A-N,R-Z][0-9]([A-Z][A-Z, 0-9][A-Z, 0-9][0-9]){1,2})|([O,P,Q][0-9][A-Z, 0-9][A-Z, 0-9][A-Z, 0-9][0-9])(\.\d+)?$":"uniprot"}
