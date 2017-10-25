@@ -8,7 +8,7 @@ See specification for further information.
 """
 #!/usr/bin/env python
 import re, libsbml, numpy
-import sys
+import sys, traceback
 
 allowed_sbtabs = ['Reaction','Compound','Compartment','Quantity','Event','Rule']
 
@@ -207,6 +207,27 @@ class SBMLDocument:
             except: pass
             try: value_row[7] = str(species.getHasOnlySubstanceUnits())
             except: pass
+
+            notesStr = species.getNotesString()
+            notesHash = self.parse_legacy_sbml_notes(notesStr)
+
+            # we put whatever is in the COBRA notes as it is, with 'Notes:' as prefix for the column name
+            try:
+                for i,key in enumerate(notesHash):
+                    value = notesHash[key][0];
+                    # print('note = ' + key + ' value = ' + value);
+                    
+                    # adding a header if necessary
+                    if not ("!Notes:" + key) in header:
+                        column2ident['notes' + key] = int(len(header))
+                        header.append('!Notes:' + key)
+                        value_row.append('')
+
+                    # adding the value into the right row
+                    value_row[column2ident['notes' + key]] = value
+
+            except: traceback.print_exc()
+
             try:
                 annot_tuples = self.getAnnotations(species)
                 for i,annotation in enumerate(annot_tuples):
@@ -379,7 +400,7 @@ class SBMLDocument:
         Builds a Reaction SBtab.
         '''
         reaction     = [['!!SBtab SBtabVersion="1.0" Document="'+self.filename.rstrip('.xml')+'" TableType="Reaction" TableName="Reaction"'],['']]
-        header       = ['!Reaction','!Name','!ReactionFormula','!Location','!Regulator','!KineticLaw','!SBOTerm','!IsReversible','!Pathway']
+        header       = ['!Reaction','!Name','!ReactionFormula','!Location','!Regulator','!KineticLaw','!SBOTerm','!IsReversible','!Pathway','!GeneAssociation']
         identifiers  = []
         column2ident = {}
 
@@ -411,9 +432,31 @@ class SBMLDocument:
 
             if "SUBSYSTEM" in notesHash:
                 value_row[8] = notesHash["SUBSYSTEM"][0]
+            if "GENE_ASSOCIATION" in notesHash:
+                value_row[9] = notesHash["GENE_ASSOCIATION"][0]
+            if "GENE ASSOCIATION" in notesHash:
+                value_row[9] = notesHash["GENE ASSOCIATION"][0]
+
+            # we put whatever is in the COBRA notes as it is, with 'Notes:' as prefix for the column name
+            try:
+                for i,key in enumerate(notesHash):
+                    value = notesHash[key][0];
+                    # print('note = ' + key + ' value = ' + value);
+                    
+                    # avoid to process SUBSYSTEM and gene association as they are done earlier
+                    if key == "SUBSYSTEM" or key == "GENE_ASSOCIATION" or key == "GENE ASSOCIATION":
+                        continue;
+
+                    # adding a header if necessary
+                    if not ("!Notes:" + key) in header:
+                        column2ident['notes' + key] = int(len(header))
+                        header.append('!Notes:' + key)
+                        value_row.append('')
+                    value_row[column2ident['notes' + key]] = value
+
+            except: traceback.print_exc()
 
             # Going through annotations
-            # TODO - go through the annotations that are on the COBRA notes as well and merged them together
             try:
                 annot_tuples = self.getAnnotations(react)
                 for i,annotation in enumerate(annot_tuples):
