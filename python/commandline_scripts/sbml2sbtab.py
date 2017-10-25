@@ -210,7 +210,7 @@ class SBMLDocument:
 
             notesStr = species.getNotesString()
             notesHash = self.parse_legacy_sbml_notes(notesStr)
-
+            
             # we put whatever is in the COBRA notes as it is, with 'Notes:' as prefix for the column name
             try:
                 for i,key in enumerate(notesHash):
@@ -433,9 +433,9 @@ class SBMLDocument:
             if "SUBSYSTEM" in notesHash:
                 value_row[8] = notesHash["SUBSYSTEM"][0]
             if "GENE_ASSOCIATION" in notesHash:
-                value_row[9] = notesHash["GENE_ASSOCIATION"][0]
+                value_row[9] = '"' + notesHash["GENE_ASSOCIATION"][0] + '"';
             if "GENE ASSOCIATION" in notesHash:
-                value_row[9] = notesHash["GENE ASSOCIATION"][0]
+                value_row[9] = '"' + notesHash["GENE ASSOCIATION"][0] + '"';
 
             # we put whatever is in the COBRA notes as it is, with 'Notes:' as prefix for the column name
             try:
@@ -611,7 +611,7 @@ class SBMLDocument:
                 note_delimiter_index = the_note.index(note_delimiter)
                 note_field = the_note[:note_delimiter_index].lstrip(
                     ' ').rstrip(' ').replace('_', ' ').upper()
-                note_value = the_note[(note_delimiter_index + 1):].lstrip(' ').rstrip(' ')
+                note_value = the_note[(note_delimiter_index + 1):].lstrip(' ').rstrip(' ').replace('\n', ' ')
 
                 if note_field in note_dict:
                     note_dict[note_field].append(note_value)
